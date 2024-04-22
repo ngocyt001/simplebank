@@ -153,3 +153,53 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, rsp)
 }
+
+type updateUserRequest struct {
+	Username       string `json:"username" binding:"required,alphanum"`
+	HashedPassword string `json:"hashed_password" binding:"omitempty"`
+	FullName       string `json:"full_name" binding:"omitempty"`
+	Email          string `json:"email" binding:"omitempty,email"`
+}
+
+func (server *Server) updateUser(ctx *gin.Context) {
+	var req updateUserRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// Prepare parameters for the update query
+	updateParams := db.UpdateUserParams{
+		Username: req.Username,
+	}
+
+	// Only set fields that were provided in the request
+	if req.HashedPassword != "" {
+		hashedPassword, err := util.HashPassword(req.HashedPassword)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+		updateParams.HashedPassword = sql.NullString{String: hashedPassword, Valid: true}
+	}
+	if req.FullName != "" {
+		updateParams.FullName = sql.NullString{String: req.FullName, Valid: true}
+	}
+	if req.Email != "" {
+		updateParams.Email = sql.NullString{String: req.Email, Valid: true}
+	}
+
+	// Call the update user method on the store
+	user, err := server.store.UpdateUser(ctx, updateParams)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// Respond with the updated user
+	ctx.JSON(http.StatusOK, newUserResponse(user))
+}
