@@ -155,10 +155,10 @@ func (server *Server) loginUser(ctx *gin.Context) {
 }
 
 type updateUserRequest struct {
-	Username       string `json:"username" binding:"required,alphanum"`
-	HashedPassword string `json:"hashed_password" binding:"omitempty"`
-	FullName       string `json:"full_name" binding:"omitempty"`
-	Email          string `json:"email" binding:"omitempty,email"`
+	Username string `json:"username" binding:"required,alphanum"`
+	Password string `json:"password" binding:"omitempty"`
+	FullName string `json:"full_name" binding:"omitempty"`
+	Email    string `json:"email" binding:"omitempty,email"`
 }
 
 func (server *Server) updateUser(ctx *gin.Context) {
@@ -174,13 +174,16 @@ func (server *Server) updateUser(ctx *gin.Context) {
 	}
 
 	// Only set fields that were provided in the request
-	if req.HashedPassword != "" {
-		hashedPassword, err := util.HashPassword(req.HashedPassword)
+	if req.Password != "" {
+		hashedPassword, err := util.HashPassword(req.Password)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 			return
 		}
 		updateParams.HashedPassword = sql.NullString{String: hashedPassword, Valid: true}
+
+		updateParams.PasswordChangedAt = sql.NullTime{Time: time.Now(), Valid: true}
+
 	}
 	if req.FullName != "" {
 		updateParams.FullName = sql.NullString{String: req.FullName, Valid: true}

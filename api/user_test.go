@@ -330,10 +330,10 @@ func TestUpdateUserAPI(t *testing.T) {
 		{
 			name: "OK",
 			body: gin.H{
-				"username":        user.Username,
-				"hashed_password": password,
-				"full_name":       user.FullName,
-				"email":           user.Email,
+				"username":  user.Username,
+				"password":  password,
+				"full_name": user.FullName,
+				"email":     user.Email,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
@@ -348,10 +348,10 @@ func TestUpdateUserAPI(t *testing.T) {
 		{
 			name: "UserNotFound",
 			body: gin.H{
-				"username":        "NotFound",
-				"hashed_password": password,
-				"full_name":       user.FullName,
-				"email":           user.Email,
+				"username":  "NotFound",
+				"password":  password,
+				"full_name": user.FullName,
+				"email":     user.Email,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
@@ -366,10 +366,10 @@ func TestUpdateUserAPI(t *testing.T) {
 		{
 			name: "InternalError",
 			body: gin.H{
-				"username":        user.Username,
-				"hashed_password": password,
-				"full_name":       user.FullName,
-				"email":           user.Email,
+				"username":  user.Username,
+				"password":  password,
+				"full_name": user.FullName,
+				"email":     user.Email,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
@@ -384,10 +384,10 @@ func TestUpdateUserAPI(t *testing.T) {
 		{
 			name: "InvalidUsername",
 			body: gin.H{
-				"username":        "invalid-user#1",
-				"hashed_password": password,
-				"full_name":       user.FullName,
-				"email":           user.Email,
+				"username":  "invalid-user#1",
+				"password":  password,
+				"full_name": user.FullName,
+				"email":     user.Email,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
