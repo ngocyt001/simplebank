@@ -1,13 +1,13 @@
 package api
 
 import (
-	"database/sql"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/ngocyt001/simplebank/db/sqlc"
 	"github.com/ngocyt001/simplebank/util"
 )
@@ -59,12 +59,9 @@ func (server *Server) createUser(ctx *gin.Context) {
 
 	user, err := server.store.CreateUser(ctx, arg)
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok {
-			switch pqErr.Code.Name() {
-			case "unique_violation":
-				ctx.JSON(http.StatusForbidden, errorResponse(err))
-				return
-			}
+		if db.ErrorCode(err) == db.UniqueViolation {
+			ctx.JSON(http.StatusForbidden, errorResponse(err))
+			return
 		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -97,7 +94,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 	user, err := server.store.GetUser(ctx, req.Username)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, db.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
@@ -180,22 +177,22 @@ func (server *Server) updateUser(ctx *gin.Context) {
 			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 			return
 		}
-		updateParams.HashedPassword = sql.NullString{String: hashedPassword, Valid: true}
+		updateParams.HashedPassword = pgtype.Text{String: hashedPassword, Valid: true}
 
-		updateParams.PasswordChangedAt = sql.NullTime{Time: time.Now(), Valid: true}
+		updateParams.PasswordChangedAt = pgtype.Timestamptz{Time: time.Now(), Valid: true}
 
 	}
 	if req.FullName != "" {
-		updateParams.FullName = sql.NullString{String: req.FullName, Valid: true}
+		updateParams.FullName = pgtype.Text{String: req.FullName, Valid: true}
 	}
 	if req.Email != "" {
-		updateParams.Email = sql.NullString{String: req.Email, Valid: true}
+		updateParams.Email = pgtype.Text{String: req.Email, Valid: true}
 	}
 
 	// Call the update user method on the store
 	user, err := server.store.UpdateUser(ctx, updateParams)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, db.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 			return
 		}
